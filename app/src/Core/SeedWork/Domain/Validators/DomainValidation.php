@@ -2,6 +2,7 @@
 
 namespace Core\SeedWork\Domain\Validators;
 
+use Core\SeedWork\Domain\Enums\TypeUserEnum;
 use Core\SeedWork\Domain\Exceptions\EntityValidationException;
 
 class DomainValidation
@@ -40,6 +41,13 @@ class DomainValidation
             if (!preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $email)) {
                 throw new EntityValidationException($customMessage ?? "The email address provided is not valid");
             }
+        }
+    }
+
+    public static function validateType(TypeUserEnum $type = null, string $customMessage = null): void
+    {
+        if ($type->value == TypeUserEnum::DEFAULT->value) {
+            throw new EntityValidationException($customMessage ?? "The type provided is not valid");
         }
     }
 }

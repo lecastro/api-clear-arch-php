@@ -11,7 +11,6 @@ use Core\SeedWork\Domain\Validators\DomainValidation;
 
 class User
 {
-    // validar como unico documento e email usuario precisa ter cpf e logistar cnpj
     use MethodsMagicsTrait;
 
     public function __construct(
@@ -35,5 +34,6 @@ class User
         DomainValidation::strMaxLength($this->name);
 
         DomainValidation::validateEmail($this->email);
+        DomainValidation::validateType($this->type);
     }
 }
