@@ -116,3 +116,15 @@ test('should throw exception with email is invalid', function () {
         type: TypeUserEnum::CUSTOMER,
     );
 })->throws(EntityValidationException::class);
+
+test('should throw exception with type is invalid', function () {
+    new User(
+        id: null,
+        name: 'userTest',
+        email: 'user123',
+        document: new Document('123.456.789-09'),
+        password: '1234567',
+        type: TypeUserEnum::isValid('user'),
+    );
+
+})->throws(EntityValidationException::class);

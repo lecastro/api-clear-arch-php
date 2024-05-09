@@ -18,4 +18,14 @@ trait MethodsMagicsTrait
     {
         return (string) $this->id;
     }
+
+    public function email(): string
+    {
+        return (string) $this->email;
+    }
+
+    public function document(): string
+    {
+        return (string) $this->document;
+    }
 }

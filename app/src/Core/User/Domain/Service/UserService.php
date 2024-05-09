@@ -2,6 +2,7 @@
 
 namespace Core\User\Domain\Service;
 
+use Core\User\Domain\Entities\User;
 use Core\User\Domain\validator\UserValidation;
 use Core\User\Domain\Repository\UserRepositoryInterface;
 
@@ -10,25 +11,34 @@ class UserService
     public function __construct(protected UserRepositoryInterface $repository)
     {
     }
-
+    
     public function checkIfEmailExists(string $email): bool
     {
         $existingUser = $this->repository->findByEmail($email);
 
-        if ($existingUser !== null) {
-            UserValidation::validateEmail($email);
-        }
-
-        return false;
+        return $existingUser !== null;
     }
+
     public function checkIfCPFExists(string $cpf): bool
     {
         $existingUser = $this->repository->findByCPF($cpf);
 
-        if ($existingUser !== null) {
-            UserValidation::validateCPF($cpf);
-        }
+        return $existingUser !== null;
+    }
 
-        return false;
+    public function create(User $user): void
+    {
+        try {
+            if ($this->checkIfEmailExists($user->email())) {
+                UserValidation::validateEmail($user->email());
+            }
+
+            if ($this->checkIfCPFExists($user->document())) {
+                UserValidation::validateCPF($user->document());
+            }
+            $this->repository->create($user);
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 }

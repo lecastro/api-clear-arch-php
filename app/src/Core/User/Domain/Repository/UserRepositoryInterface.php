@@ -8,4 +8,5 @@ interface UserRepositoryInterface
 {
     public function findByEmail(string $email): ?User;
     public function findByCPF(string $cpf): ?User;
+    public function create(User $user): void;
 }
