@@ -1,0 +1,31 @@
+{
+    "name": "lecastro/clear-arch-php",
+    "authors": [
+        {
+            "name": "Lucas Castro",
+            "email": "lucas.casto1993@hotmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Core\\": "src/Core/"
+        }
+    },
+    "require-dev": {
+        "pestphp/pest": "^2.5",
+        "mockery/mockery": "^1.5",
+        "mp091689/dump-die": "^1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "./vendor/bin/pest"
+    },
+    "require": {
+        "ramsey/uuid": "^4.7",
+        "fakerphp/faker": "^1.21"
+    }
+}
