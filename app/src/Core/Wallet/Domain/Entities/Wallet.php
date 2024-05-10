@@ -30,8 +30,29 @@ class Wallet
         return $this->balance < $amount;
     }
 
+    public function getBalance(): float
+    {
+        return $this->balance;
+    }
+
+    public function deposit(float $amount): void
+    {
+        WalletValidation::validateValueNegative($amount);
+
+        $this->balance += $amount;
+    }
+
+    public function withdrawal(float $amount): void
+    {
+        if ($this->hasBalance($amount)) {
+            WalletValidation::validateBalance($amount);
+        }
+
+        $this->balance -= $amount;
+    }
+
     private function validate(): void
     {
-        WalletValidation::hasBalance($this->balance);
+        WalletValidation::validateValueNegative($this->balance);
     }
 }

@@ -7,10 +7,12 @@ use Core\Wallet\Domain\Entities\Wallet;
 use Core\SeedWork\Domain\ValueObjects\Uuid;
 use Core\SeedWork\Domain\Enums\TypeUserEnum;
 use Core\SeedWork\Domain\ValueObjects\Document;
+use Core\User\Domain\validator\Exceptions\NegativeBalanceException;
+use Core\User\Domain\validator\Exceptions\InsufficientBalanceException;
 
 beforeEach(function () {
     $this->faker    = Factory::create();
-    $this->balance  = $this->faker->randomFloat(2, 0, 10000);
+    $this->balance  = 100.0;
 
     $this->user = new User(
         id: null,
@@ -25,11 +27,11 @@ beforeEach(function () {
         id: null,
         userType: $this->faker->randomElement([TypeUserEnum::CUSTOMER, TypeUserEnum::RETAILER]),
         userId: $this->user->id,
-        balance: $this->balance
+        balance: 100.0
     );
 });
 
-test('constructor of user wallet', function () {
+test('should constructor of user wallet', function () {
     expect($this->wallet)->toHaveProperties([
         'id',
         'userType',
@@ -48,13 +50,13 @@ test('constructor of user wallet', function () {
     expect($this->wallet->userId->get())->toBeString();
     expect($this->wallet->userId)->toBeInstanceOf(Uuid::class);
 
-    expect($this->wallet->balance)->toBe($this->balance);
+    expect($this->wallet->getBalance())->toBe($this->balance);
 
     expect($this->wallet->createdAt)->not->toBeNull();
     expect($this->wallet->createdAt)->toBeInstanceOf(DateTime::class);
 });
 
-it('checks if hasBalance returns the correct result', function () {
+it('should checks if hasBalance returns the correct result', function () {
     $wallet = new Wallet(
         null,
         $this->faker->randomElement([TypeUserEnum::CUSTOMER, TypeUserEnum::RETAILER]),
@@ -68,3 +70,23 @@ it('checks if hasBalance returns the correct result', function () {
 
     expect($wallet->hasBalance(100.0))->toBeFalse();
 });
+
+it('should check if the deposit methods work correctly', function () {
+    $this->wallet->deposit(50.0);
+
+    expect($this->wallet->getBalance())->toBe(150.0);
+});
+
+test('throw an exception if the deposit value is negative', function () {
+    $this->wallet->deposit(-50.0);
+})->throws(NegativeBalanceException::class);
+
+it('should check if the withdrawal methods work correctly', function () {
+    $this->wallet->withdrawal(20.0);
+
+    expect($this->wallet->getBalance())->toBe(80.0);
+});
+
+test('throws an exception if the withdrawal amount is greater than the balance', function () {
+    $this->wallet->withdrawal(250.0);
+})->throws(InsufficientBalanceException::class);
