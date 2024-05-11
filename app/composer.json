@@ -1,5 +1,5 @@
 {
-    "name": "lecastro/clear-arch-php",
+    "name": "lecastro/api-clear-arch-php",
     "authors": [
         {
             "name": "Lucas Castro",
@@ -8,7 +8,9 @@
     ],
     "autoload": {
         "psr-4": {
-            "Core\\": "src/Core/"
+            "Domain\\": "src/Domain/",
+            "Infrastructure\\": "src/Infrastructure/",
+            "Usecase\\": "src/Usecase/"
         }
     },
     "require-dev": {

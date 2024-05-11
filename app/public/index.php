@@ -1,6 +1,6 @@
 <?php
 
-use Core\Example;
+use Domain\Example;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
