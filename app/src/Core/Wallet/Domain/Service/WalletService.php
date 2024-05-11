@@ -23,6 +23,16 @@ class WalletService
         return $this->walletRepository->create($user);
     }
 
+    public function getWalletByPayerId(string $payerId): ?Wallet
+    {
+        return $this->walletRepository->getWalletByPayerId($payerId);
+    }
+
+    public function getWalletByPayeeId(string $payeeId): ?Wallet
+    {
+        return $this->walletRepository->getWalletByPayeeId($payeeId);
+    }
+
     public function findById(string $walletId): ?Wallet
     {
         return $this->walletRepository->findById($walletId);

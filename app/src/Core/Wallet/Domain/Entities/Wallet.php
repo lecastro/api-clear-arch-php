@@ -55,4 +55,9 @@ class Wallet
     {
         WalletValidation::validateValueNegative($this->balance);
     }
+
+    public function hasRetailer(): bool
+    {
+        return $this->userType == TypeUserEnum::RETAILER;
+    }
 }

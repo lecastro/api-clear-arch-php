@@ -28,4 +28,19 @@ trait MethodsMagicsTrait
     {
         return (string) $this->document;
     }
+
+    public function payerId(): string
+    {
+        return (string) $this->payerId;
+    }
+
+    public function payeeId(): string
+    {
+        return (string) $this->payeeId;
+    }
+
+    public function amount(): float
+    {
+        return $this->amount;
+    }
 }

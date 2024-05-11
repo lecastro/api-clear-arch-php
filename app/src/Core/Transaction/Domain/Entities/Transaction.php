@@ -31,4 +31,9 @@ class Transaction
         TransactionValidation::validateValueNegative($this->amount);
         TransactionValidation::validateType($this->status);
     }
+
+    public function updateStatus(TransactionStatusEnum $status): void
+    {
+        $this->status = $status;
+    }
 }
