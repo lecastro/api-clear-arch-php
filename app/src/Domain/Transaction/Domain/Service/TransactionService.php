@@ -51,7 +51,7 @@ class TransactionService
         }
     }
 
-    public function cancelTransaction(Transaction $transaction): void
+    private function cancelTransaction(Transaction $transaction): void
     {
         $transaction->updateStatus(TransactionStatusEnum::CANCELED);
         $this->repository->create($transaction);
