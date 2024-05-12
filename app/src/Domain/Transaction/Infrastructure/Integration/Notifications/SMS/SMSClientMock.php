@@ -1,13 +1,13 @@
 <?php
 
-namespace Domain\Transaction\Infrastructure\Integration\Notifications\Mail;
+namespace Domain\Transaction\Infrastructure\Integration\Notifications\SMS;
 
 use Infrastructure\Integration\Client\IntegrationClientFaker;
-use Domain\Transaction\Infrastructure\Integration\Notifications\AdapterEmailNotification;
+use Domain\Transaction\Infrastructure\Integration\Notifications\AdapterSMSNotification;
 
-class MailClientMock implements AdapterEmailNotification
+class SMSClientMock implements AdapterSMSNotification
 {
-    public function sendEmailNotification(): bool
+    public function sendSMSNotification(): bool
     {
         $response = IntegrationClientFaker::make($this->mock())
             ->getClient()
