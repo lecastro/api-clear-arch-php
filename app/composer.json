@@ -28,6 +28,7 @@
     },
     "require": {
         "ramsey/uuid": "^4.7",
-        "fakerphp/faker": "^1.21"
+        "fakerphp/faker": "^1.21",
+        "guzzlehttp/guzzle": "^7.8"
     }
 }
