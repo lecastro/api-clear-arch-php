@@ -2,7 +2,7 @@
 
 namespace Domain\Transaction\Infrastructure\Integration\Notifications;
 
-interface AdapterSMSNotification
+interface AdapterEmailNotification
 {
-    public function sendSMSNotification(): bool;
+    public function sendEmailNotification(): bool;
 }

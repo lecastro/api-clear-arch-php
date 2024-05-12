@@ -7,12 +7,18 @@ use Domain\Transaction\Domain\Entities\Transaction;
 use Domain\Transaction\Domain\Enums\TransactionStatusEnum;
 use Domain\Transaction\Domain\validator\TransactionValidation;
 use Domain\Transaction\Domain\Repository\TransactionRepositoryInterface;
+use Domain\Transaction\Infrastructure\Integration\Providers\AdapterProviderInterface;
+use Domain\Transaction\Infrastructure\Integration\Notifications\AdapterSMSNotification;
+use Domain\Transaction\Infrastructure\Integration\Notifications\AdapterEmailNotification;
 
 class TransactionService
 {
     public function __construct(
         protected TransactionRepositoryInterface $repository,
-        protected WalletService $walletService
+        protected WalletService $walletService,
+        protected AdapterProviderInterface $provider,
+        protected AdapterEmailNotification $mail,
+        protected AdapterSMSNotification $sms
     ) {
     }
 
@@ -35,8 +41,9 @@ class TransactionService
 
             $transaction->updateStatus(TransactionStatusEnum::COMPLETED);
 
-            // authorizePayment
-            // sendPaymentApproval
+            $this->sendAuthorizeTransaction();
+            $this->sendSMSNotification();
+
             $this->repository->create($transaction);
         } catch (\Throwable $th) {
             $this->cancelTransaction($transaction);
@@ -48,5 +55,19 @@ class TransactionService
     {
         $transaction->updateStatus(TransactionStatusEnum::CANCELED);
         $this->repository->create($transaction);
+    }
+
+    private function sendAuthorizeTransaction(): void
+    {
+        if (!$this->provider->authorizeTransaction()) {
+            TransactionValidation::notAuthorized();
+        }
+    }
+
+    private function sendSMSNotification()
+    {
+        if (!$this->mail->sendEmailNotification() || !$this->sms->sendSMSNotification()) {
+            TransactionValidation::transactionMessageNotSent();
+        }
     }
 }

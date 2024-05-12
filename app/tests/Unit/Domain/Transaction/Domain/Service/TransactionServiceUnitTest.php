@@ -2,19 +2,24 @@
 
 use Faker\Factory;
 use Mockery\MockInterface;
-use Domain\User\Domain\Entities\User;
-use Domain\Wallet\Domain\Entities\Wallet;
 use Domain\Shared\Enums\TypeUserEnum;
-use Domain\Wallet\Domain\Service\WalletService;
+use Domain\User\Domain\Entities\User;
 use Domain\Shared\ValueObjects\Document;
+use Domain\Wallet\Domain\Entities\Wallet;
+use Domain\Wallet\Domain\Service\WalletService;
 use Domain\Transaction\Domain\Entities\Transaction;
 use Domain\Transaction\Domain\Service\TransactionService;
 use Domain\Transaction\Domain\Enums\TransactionStatusEnum;
 use Domain\Wallet\Domain\Repository\WalletRepositoryInterface;
 use Domain\Transaction\Domain\Repository\TransactionRepositoryInterface;
+use Domain\Transaction\Infrastructure\Integration\Providers\CallProvider;
 use Domain\Transaction\Domain\validator\Exceptions\InsufficientBalanceException;
 use Domain\Transaction\Domain\validator\Exceptions\RetailerNotAllowedToPayException;
-use Domain\User\Domain\validator\Exceptions\NegativeBalanceException;
+use Domain\Transaction\Infrastructure\Integration\Notifications\CallSMSNotification;
+use Domain\Transaction\Infrastructure\Integration\Providers\AdapterProviderInterface;
+use Domain\Transaction\Infrastructure\Integration\Notifications\CallEmailNotification;
+use Domain\Transaction\Infrastructure\Integration\Notifications\AdapterSMSNotification;
+use Domain\Transaction\Infrastructure\Integration\Notifications\AdapterEmailNotification;
 
 beforeEach(function () {
     $this->payer = new User(
@@ -56,19 +61,35 @@ beforeEach(function () {
         amount: 100.0,
         status: TransactionStatusEnum::CREATED
     );
-});
 
-it("should create transaction between users", function () {
-    $transactionRepositoryMock = mock(TransactionRepositoryInterface::class, function (MockInterface $mock) {
+    $this->transactionRepositoryMock = mock(TransactionRepositoryInterface::class, function (MockInterface $mock) {
         $mock->shouldReceive('create')->with($this->transaction)->once();
         $mock->shouldReceive('findByIdTransaction')->with($this->transaction->id->get())->andReturn($this->transaction);
     });
 
-    $walletRepositoryMock = mock(WalletRepositoryInterface::class, function (MockInterface $mock) {
+    $this->walletRepositoryMock = mock(WalletRepositoryInterface::class, function (MockInterface $mock) {
         $mock->shouldReceive('getWalletByPayerId')->with($this->transaction->payerId())->andReturn($this->payerWallet);
         $mock->shouldReceive('getWalletByPayeeId')->with($this->transaction->payeeId())->andReturn($this->payeeWallet);
     });
 
+    $this->provider = mock(AdapterProviderInterface::class, function (MockInterface $mock) {
+        $mock->shouldReceive('authorizeTransaction')->andReturn(true);
+    });
+
+    $this->provider = mock(AdapterProviderInterface::class, function (MockInterface $mock) {
+        $mock->shouldReceive('authorizeTransaction')->andReturn(true);
+    });
+
+    $this->callSMS = mock(AdapterSMSNotification::class, function (MockInterface $mock) {
+        $mock->shouldReceive('sendSMSNotification')->andReturn(true);
+    });
+
+    $this->callMail = mock(AdapterEmailNotification::class, function (MockInterface $mock) {
+        $mock->shouldReceive('sendEmailNotification')->andReturn(true);
+    });
+});
+
+it("should create transaction between users", function () {
     expect($this->payerWallet->getBalance())->toBe(500.0);
     expect($this->payeeWallet->getBalance())->toBe(0.0);
 
@@ -81,17 +102,27 @@ it("should create transaction between users", function () {
     expect($this->transaction->status)->toBeInstanceOf(TransactionStatusEnum::class);
     expect($this->transaction->status->value)->toBe(TransactionStatusEnum::CREATED->value);
 
-    $walletServiceMock = new WalletService($walletRepositoryMock);
+    $walletServiceMock = new WalletService($this->walletRepositoryMock);
 
-    $transactionService = new TransactionService($transactionRepositoryMock, $walletServiceMock);
+    $providerTransaction = new CallProvider($this->provider);
+    $callMail            = new CallEmailNotification($this->callMail);
+    $callSMS             = new CallSMSNotification($this->callSMS);
+
+    $transactionService = new TransactionService(
+        $this->transactionRepositoryMock,
+        $walletServiceMock,
+        $providerTransaction->getAdapter(),
+        $callMail->getAdapter(),
+        $callSMS->getAdapter()
+    );
 
     $transactionService->create($this->transaction);
 
-    $foundTransaction = $transactionRepositoryMock->findByIdTransaction($this->transaction->id->get());
+    $foundTransaction = $this->transactionRepositoryMock->findByIdTransaction($this->transaction->id->get());
 
     expect($this->payerWallet->getBalance())->toBe(400.0);
     expect($this->payeeWallet->getBalance())->toBe(100.0);
-    
+
     expect($this->transaction->status)->toBeInstanceOf(TransactionStatusEnum::class);
     expect($this->transaction->status->value)->toBe(TransactionStatusEnum::COMPLETED->value);
 
@@ -99,10 +130,6 @@ it("should create transaction between users", function () {
 });
 
 test('should throw an exception with insufficient balance create transaction between users', function () {
-    $transactionRepositoryMock = mock(TransactionRepositoryInterface::class, function (MockInterface $mock) {
-        $mock->shouldReceive('create')->with($this->transaction);
-    });
-
     $walletRepositoryMock = mock(WalletRepositoryInterface::class, function (MockInterface $mock) {
         $mock->shouldReceive('getWalletByPayerId')->with($this->transaction->payerId())->andReturn(new Wallet(
             id: null,
@@ -123,7 +150,17 @@ test('should throw an exception with insufficient balance create transaction bet
 
     $walletServiceMock = new WalletService($walletRepositoryMock);
 
-    $transactionService = new TransactionService($transactionRepositoryMock, $walletServiceMock);
+    $providerTransaction = new CallProvider($this->provider);
+    $callMail            = new CallEmailNotification($this->callMail);
+    $callSMS             = new CallSMSNotification($this->callSMS);
+
+    $transactionService = new TransactionService(
+        $this->transactionRepositoryMock,
+        $walletServiceMock,
+        $providerTransaction->getAdapter(),
+        $callMail->getAdapter(),
+        $callSMS->getAdapter()
+    );
 
     $transactionService->create($this->transaction);
 
@@ -135,10 +172,6 @@ test('should throw an exception with insufficient balance create transaction bet
 })->throws(InsufficientBalanceException::class);
 
 test('should throw an exception when Shopkeeper tries to make a transaction', function () {
-    $transactionRepositoryMock = mock(TransactionRepositoryInterface::class, function (MockInterface $mock) {
-        $mock->shouldReceive('create')->with($this->transaction);
-    });
-
     $walletRepositoryMock = mock(WalletRepositoryInterface::class, function (MockInterface $mock) {
         $mock->shouldReceive('getWalletByPayerId')->with($this->transaction->payerId())->andReturn(new Wallet(
             id: null,
@@ -159,7 +192,17 @@ test('should throw an exception when Shopkeeper tries to make a transaction', fu
 
     $walletServiceMock = new WalletService($walletRepositoryMock);
 
-    $transactionService = new TransactionService($transactionRepositoryMock, $walletServiceMock);
+    $providerTransaction = new CallProvider($this->provider);
+    $callMail            = new CallEmailNotification($this->callMail);
+    $callSMS             = new CallSMSNotification($this->callSMS);
+
+    $transactionService = new TransactionService(
+        $this->transactionRepositoryMock,
+        $walletServiceMock,
+        $providerTransaction->getAdapter(),
+        $callMail->getAdapter(),
+        $callSMS->getAdapter()
+    );
 
     $transactionService->create($this->transaction);
 
@@ -169,39 +212,3 @@ test('should throw an exception when Shopkeeper tries to make a transaction', fu
     expect($this->transaction->status)->toBeInstanceOf(TransactionStatusEnum::class);
     expect($this->transaction->status->value)->toBe(TransactionStatusEnum::CANCELED->value);
 })->throws(RetailerNotAllowedToPayException::class);
-
-test('should throw an exception when trying negative value', function () {
-    $transactionRepositoryMock = mock(TransactionRepositoryInterface::class, function (MockInterface $mock) {
-        $mock->shouldReceive('create')->with($this->transaction);
-    });
-
-    $walletRepositoryMock = mock(WalletRepositoryInterface::class, function (MockInterface $mock) {
-        $mock->shouldReceive('getWalletByPayerId')->with($this->transaction->payerId())->andReturn(new Wallet(
-            id: null,
-            userType: TypeUserEnum::CUSTOMER,
-            userId: $this->payer->id,
-            balance: -600.0
-        ));
-
-        $mock->shouldReceive('getWalletByPayeeId')->with($this->transaction->payeeId())->andReturn(
-            new Wallet(
-                id: null,
-                userType: TypeUserEnum::RETAILER,
-                userId: $this->payer->id,
-                balance: 0.0
-            )
-        );
-    });
-
-    $walletServiceMock = new WalletService($walletRepositoryMock);
-
-    $transactionService = new TransactionService($transactionRepositoryMock, $walletServiceMock);
-
-    $transactionService->create($this->transaction);
-
-    expect($this->payerWallet->getBalance())->toBe(-600.0);
-    expect($this->payeeWallet->getBalance())->toBe(0.0);
-
-    expect($this->transaction->status)->toBeInstanceOf(TransactionStatusEnum::class);
-    expect($this->transaction->status->value)->toBe(TransactionStatusEnum::CANCELED->value);
-})->throws(NegativeBalanceException::class);

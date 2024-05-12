@@ -3,6 +3,7 @@
 namespace Domain\Transaction\Domain\validator;
 
 use Domain\Transaction\Domain\Enums\TransactionStatusEnum;
+use Domain\Transaction\Domain\validator\Exceptions\TransactionException;
 use Domain\Transaction\Domain\validator\Exceptions\NegativeBalanceException;
 use Domain\Transaction\Domain\validator\Exceptions\EntityValidationException;
 use Domain\Transaction\Domain\validator\Exceptions\InsufficientBalanceException;
@@ -32,5 +33,15 @@ class TransactionValidation
     public static function noMoneyOnWallet(): void
     {
         throw new InsufficientBalanceException("No money on wallet.");
+    }
+
+    public static function notAuthorized(): void
+    {
+        throw new TransactionException('not authorized');
+    }
+
+    public static function transactionMessageNotSent(): void
+    {
+        throw new TransactionException('nessage not sent');
     }
 }
